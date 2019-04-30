@@ -32,16 +32,19 @@
  * USE OR OTHER DEALINGS IN THE SOFTWARE.                                     *
  * -------------------------------------------------------------------------- */
 
-#include "openmm/DrudeForce.h"
-#include "openmm/DrudeLangevinIntegrator.h"
-#include "openmm/DrudeSCFIntegrator.h"
-#include "openmm/Platform.h"
-#include "openmm/System.h"
+#include "openmm/KernelImpl.h"
 #include "openmm/Vec3.h"
 #include <string>
 #include <vector>
 
 namespace OpenMM {
+
+class Platform;
+class System;
+class DrudeForce;
+class DrudeLangevinIntegrator;
+class DrudeSCFIntegrator;
+class DrudeNoseHooverChainIntegrator;
 
 /**
  * This kernel is invoked by DrudeForce to calculate the forces acting on the system and the energy of the system.
@@ -107,6 +110,37 @@ public:
      * Compute the kinetic energy.
      */
     virtual double computeKineticEnergy(ContextImpl& context, const DrudeLangevinIntegrator& integrator) = 0;
+};
+
+/**
+ * This kernel is invoked by DrudeNoseHooverChainIntegrator to take one time step.
+ */
+class IntegrateDrudeNoseHooverChainStepKernel : public KernelImpl {
+public:
+    static std::string Name() {
+        return "IntegrateDrudeNoseHooverChainStep";
+    }
+    IntegrateDrudeNoseHooverChainStepKernel(std::string name, const Platform& platform) : KernelImpl(name, platform) {
+    }
+    /**
+     * Initialize the kernel.
+     *
+     * @param system     the System this kernel will be applied to
+     * @param integrator the DrudeNoseHooverChainIntegrator this kernel will be used for
+     * @param force      the DrudeForce to get particle parameters from
+     */
+    virtual void initialize(const System& system, const DrudeNoseHooverChainIntegrator& integrator, const DrudeForce& force) = 0;
+    /**
+     * Execute the kernel.
+     *
+     * @param context        the context in which to execute this kernel
+     * @param integrator     the DrudeNoseHooverChainIntegrator this kernel is being used for
+     */
+    virtual void execute(ContextImpl& context, const DrudeNoseHooverChainIntegrator& integrator) = 0;
+    /**
+     * Compute the kinetic energy.
+     */
+    virtual double computeKineticEnergy(ContextImpl& context, const DrudeNoseHooverChainIntegrator& integrator) = 0;
 };
 
 /**

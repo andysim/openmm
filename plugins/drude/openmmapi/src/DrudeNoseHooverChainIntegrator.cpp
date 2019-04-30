@@ -6,8 +6,8 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2008-2013 Stanford University and the Authors.      *
- * Authors: Peter Eastman                                                     *
+ * Portions copyright (c) 2008-2019 Stanford University and the Authors.      *
+ * Authors: Andreas Kraemer and Andrew C. Simmonett                           *
  * Contributors:                                                              *
  *                                                                            *
  * Permission is hereby granted, free of charge, to any person obtaining a    *
@@ -30,12 +30,11 @@
  * -------------------------------------------------------------------------- */
 
 #include "openmm/DrudeForce.h"
-#include "openmm/DrudeSCFIntegrator.h"
+#include "openmm/DrudeNoseHooverChainIntegrator.h"
 #include "openmm/Context.h"
 #include "openmm/OpenMMException.h"
 #include "openmm/internal/ContextImpl.h"
 #include "openmm/DrudeKernels.h"
-#include <cmath>
 #include <ctime>
 #include <string>
 
@@ -43,55 +42,74 @@ using namespace OpenMM;
 using std::string;
 using std::vector;
 
-DrudeSCFIntegrator::DrudeSCFIntegrator(double stepSize) {
+DrudeNoseHooverChainIntegrator::DrudeNoseHooverChainIntegrator(double temperature, double frictionCoeff, double drudeTemperature, double drudeFrictionCoeff, double stepSize, int chainLength, int numYoshidaSuzuki, int numMTS) {
+    setTemperature(temperature);
+    setFriction(frictionCoeff);
+    setDrudeTemperature(drudeTemperature);
+    setDrudeFriction(drudeFrictionCoeff);
+    setChainLength(chainLength);
+    setNumYoshidaSuzuki(numYoshidaSuzuki);
+    setNumMTS(numMTS);
+    setMaxDrudeDistance(0);
     setStepSize(stepSize);
-    setMinimizationErrorTolerance(0.1);
     setConstraintTolerance(1e-5);
 }
 
-void DrudeSCFIntegrator::initialize(ContextImpl& contextRef) {
+double DrudeNoseHooverChainIntegrator::getMaxDrudeDistance() const {
+    return maxDrudeDistance;
+}
+
+void DrudeNoseHooverChainIntegrator::setMaxDrudeDistance(double distance) {
+    if (distance < 0)
+        throw OpenMMException("setMaxDrudeDistance: Distance cannot be negative");
+    maxDrudeDistance = distance;
+}
+
+void DrudeNoseHooverChainIntegrator::initialize(ContextImpl& contextRef) {
     if (owner != NULL && &contextRef.getOwner() != owner)
         throw OpenMMException("This Integrator is already bound to a context");
     const DrudeForce* force = NULL;
     const System& system = contextRef.getSystem();
-    for (int i = 0; i < system.getNumForces(); i++)
+    for (int i = 0; i < system.getNumForces(); i++) {
         if (dynamic_cast<const DrudeForce*>(&system.getForce(i)) != NULL) {
             if (force == NULL)
                 force = dynamic_cast<const DrudeForce*>(&system.getForce(i));
             else
                 throw OpenMMException("The System contains multiple DrudeForces");
         }
+    }
+    const DrudeForce empty_force;
     if (force == NULL)
-        throw OpenMMException("The System does not contain a DrudeForce");
+        force = &empty_force;
     context = &contextRef;
     owner = &contextRef.getOwner();
-    kernel = context->getPlatform().createKernel(IntegrateDrudeSCFStepKernel::Name(), contextRef);
-    kernel.getAs<IntegrateDrudeSCFStepKernel>().initialize(contextRef.getSystem(), *this, *force);
+    kernel = context->getPlatform().createKernel(IntegrateDrudeNoseHooverChainStepKernel::Name(), contextRef);
+    kernel.getAs<IntegrateDrudeNoseHooverChainStepKernel>().initialize(contextRef.getSystem(), *this, *force);
 }
 
-void DrudeSCFIntegrator::cleanup() {
+void DrudeNoseHooverChainIntegrator::cleanup() {
     kernel = Kernel();
 }
 
-void DrudeSCFIntegrator::stateChanged(State::DataType changed) {
+void DrudeNoseHooverChainIntegrator::stateChanged(State::DataType changed) {
 }
 
-vector<string> DrudeSCFIntegrator::getKernelNames() {
+vector<string> DrudeNoseHooverChainIntegrator::getKernelNames() {
     std::vector<std::string> names;
-    names.push_back(IntegrateDrudeSCFStepKernel::Name());
+    names.push_back(IntegrateDrudeNoseHooverChainStepKernel::Name());
     return names;
 }
 
-double DrudeSCFIntegrator::computeKineticEnergy() {
-    return kernel.getAs<IntegrateDrudeSCFStepKernel>().computeKineticEnergy(*context, *this);
+double DrudeNoseHooverChainIntegrator::computeKineticEnergy() {
+    return kernel.getAs<IntegrateDrudeNoseHooverChainStepKernel>().computeKineticEnergy(*context, *this);
 }
 
-void DrudeSCFIntegrator::step(int steps) {
+void DrudeNoseHooverChainIntegrator::step(int steps) {
     if (context == NULL)
         throw OpenMMException("This Integrator is not bound to a context!");    
     for (int i = 0; i < steps; ++i) {
         context->updateContextState();
         context->calcForcesAndEnergy(true, false);
-        kernel.getAs<IntegrateDrudeSCFStepKernel>().execute(*context, *this);
+        kernel.getAs<IntegrateDrudeNoseHooverChainStepKernel>().execute(*context, *this);
     }
 }

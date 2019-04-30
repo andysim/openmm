@@ -34,6 +34,7 @@
 
 #include "openmm/DrudeForce.h"
 #include "openmm/DrudeLangevinIntegrator.h"
+#include "openmm/DrudeNoseHooverChainIntegrator.h"
 #include "openmm/DrudeSCFIntegrator.h"
 
 #endif /*OPENMM_DRUDE_H_*/

@@ -1206,6 +1206,26 @@ class TestAPIUnits(unittest.TestCase):
         integrator.setMaxDrudeDistance(0.05)
         self.assertEqual(integrator.getMaxDrudeDistance(), 0.05*nanometer)
 
+    def testDrudeNoseHooverChainIntegrator(self):
+        """ Tests the DrudeNoseHooverChainIntegrator API features """
+        integrator = DrudeNoseHooverChainIntegrator(300*kelvin, 1.0/microsecond,
+                                             100*kelvin, 1/picosecond, 0.1*femtosecond)
+        self.assertEqual(integrator.getTemperature(), 300*kelvin)
+        integrator.setTemperature(298.15)
+        self.assertEqual(integrator.getTemperature(), 298.15*kelvin)
+        self.assertAlmostEqualUnit(integrator.getFriction(), 1/microsecond)
+        integrator.setFriction(1)
+        self.assertEqual(integrator.getFriction(), 1/picosecond)
+        self.assertEqual(integrator.getDrudeTemperature(), 100*kelvin)
+        integrator.setDrudeTemperature(50)
+        self.assertEqual(integrator.getDrudeTemperature(), 50*kelvin)
+        self.assertEqual(integrator.getStepSize(), 0.1*femtosecond)
+        integrator.setStepSize(0.0005)
+        self.assertEqual(integrator.getStepSize(), 0.0005*picosecond)
+        self.assertEqual(integrator.getMaxDrudeDistance(), 0*nanometer)
+        integrator.setMaxDrudeDistance(0.05)
+        self.assertEqual(integrator.getMaxDrudeDistance(), 0.05*nanometer)
+
     def testCustomIntegrator(self):
         """ Tests the CustomIntegrator API features """
         integrator = CustomIntegrator(1.0)

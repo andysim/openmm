@@ -29,6 +29,10 @@
  * USE OR OTHER DEALINGS IN THE SOFTWARE.                                     *
  * -------------------------------------------------------------------------- */
 
+#include "openmm/DrudeForce.h"
+#include "openmm/DrudeLangevinIntegrator.h"
+#include "openmm/DrudeNoseHooverChainIntegrator.h"
+#include "openmm/DrudeSCFIntegrator.h"
 #include "ReferenceDrudeKernels.h"
 #include "openmm/HarmonicAngleForce.h"
 #include "openmm/OpenMMException.h"
@@ -398,6 +402,181 @@ void ReferenceIntegrateDrudeLangevinStepKernel::execute(ContextImpl& context, co
 }
 
 double ReferenceIntegrateDrudeLangevinStepKernel::computeKineticEnergy(ContextImpl& context, const DrudeLangevinIntegrator& integrator) {
+    return computeShiftedKineticEnergy(context, particleInvMass, 0.5*integrator.getStepSize());
+}
+
+
+ReferenceIntegrateDrudeNoseHooverChainStepKernel::~ReferenceIntegrateDrudeNoseHooverChainStepKernel() {
+}
+
+void ReferenceIntegrateDrudeNoseHooverChainStepKernel::initialize(const System& system, const DrudeNoseHooverChainIntegrator& integrator, const DrudeForce& force) {
+    
+    // Identify particle pairs and ordinary particles.
+    
+    set<int> particles;
+    for (int i = 0; i < system.getNumParticles(); i++) {
+        particles.insert(i);
+        double mass = system.getParticleMass(i);
+        particleMass.push_back(mass);
+        particleInvMass.push_back(mass == 0.0 ? 0.0 : 1.0/mass);
+    }
+    for (int i = 0; i < force.getNumParticles(); i++) {
+        int p, p1, p2, p3, p4;
+        double charge, polarizability, aniso12, aniso34;
+        force.getParticleParameters(i, p, p1, p2, p3, p4, charge, polarizability, aniso12, aniso34);
+        particles.erase(p);
+        particles.erase(p1);
+        pairParticles.push_back(make_pair(p, p1));
+        double m1 = system.getParticleMass(p);
+        double m2 = system.getParticleMass(p1);
+        pairInvTotalMass.push_back(1.0/(m1+m2));
+        pairInvReducedMass.push_back((m1+m2)/(m1*m2));
+    }
+    normalParticles.insert(normalParticles.begin(), particles.begin(), particles.end());
+}
+
+void ReferenceIntegrateDrudeNoseHooverChainStepKernel::execute(ContextImpl& context, const DrudeNoseHooverChainIntegrator& integrator) {
+    vector<Vec3>& pos = extractPositions(context);
+    vector<Vec3>& vel = extractVelocities(context);
+    vector<Vec3>& force = extractForces(context);
+    
+    // Update velocities of ordinary particles.
+    
+    const double vscale = exp(-integrator.getStepSize()*integrator.getFriction());
+    const double fscale = (1-vscale)/integrator.getFriction();
+    const double kT = BOLTZ*integrator.getTemperature();
+    const double noisescale = sqrt(2*kT*integrator.getFriction())*sqrt(0.5*(1-vscale*vscale)/integrator.getFriction());
+    for (int index : normalParticles) {
+        double invMass = particleInvMass[index];
+        if (invMass != 0.0) {
+            double sqrtInvMass = sqrt(invMass);
+            for (int j = 0; j < 3; j++)
+                vel[index][j] = vscale*vel[index][j] + fscale*invMass*force[index][j] + noisescale*sqrtInvMass*SimTKOpenMMUtilities::getNormallyDistributedRandomNumber();
+        }
+    }
+    
+    // Update velocities of Drude particle pairs.
+    
+    const double vscaleDrude = exp(-integrator.getStepSize()*integrator.getDrudeFriction());
+    const double fscaleDrude = (1-vscaleDrude)/integrator.getDrudeFriction();
+    const double kTDrude = BOLTZ*integrator.getDrudeTemperature();
+    const double noisescaleDrude = sqrt(2*kTDrude*integrator.getDrudeFriction())*sqrt(0.5*(1-vscaleDrude*vscaleDrude)/integrator.getDrudeFriction());
+    for (int i = 0; i < (int) pairParticles.size(); i++) {
+        int p1 = pairParticles[i].first;
+        int p2 = pairParticles[i].second;
+        double mass1fract = pairInvTotalMass[i]/particleInvMass[p1];
+        double mass2fract = pairInvTotalMass[i]/particleInvMass[p2];
+        double sqrtInvTotalMass = sqrt(pairInvTotalMass[i]);
+        double sqrtInvReducedMass = sqrt(pairInvReducedMass[i]);
+        Vec3 cmVel = vel[p1]*mass1fract+vel[p2]*mass2fract;
+        Vec3 relVel = vel[p2]-vel[p1];
+        Vec3 cmForce = force[p1]+force[p2];
+        Vec3 relForce = force[p2]*mass1fract - force[p1]*mass2fract;
+        for (int j = 0; j < 3; j++) {
+            cmVel[j] = vscale*cmVel[j] + fscale*pairInvTotalMass[i]*cmForce[j] + noisescale*sqrtInvTotalMass*SimTKOpenMMUtilities::getNormallyDistributedRandomNumber();
+            relVel[j] = vscaleDrude*relVel[j] + fscaleDrude*pairInvReducedMass[i]*relForce[j] + noisescaleDrude*sqrtInvReducedMass*SimTKOpenMMUtilities::getNormallyDistributedRandomNumber();
+        }
+        vel[p1] = cmVel-relVel*mass2fract;
+        vel[p2] = cmVel+relVel*mass1fract;
+    }
+
+    // Update the particle positions.
+    
+    int numParticles = particleInvMass.size();
+    vector<Vec3> xPrime(numParticles);
+    double dt = integrator.getStepSize();
+    for (int i = 0; i < numParticles; i++)
+        if (particleInvMass[i] != 0.0)
+            xPrime[i] = pos[i]+vel[i]*dt;
+    
+    // Apply constraints.
+    
+    extractConstraints(context).apply(pos, xPrime, particleInvMass, integrator.getConstraintTolerance());
+    
+    // Record the constrained positions and velocities.
+    
+    double dtInv = 1.0/dt;
+    for (int i = 0; i < numParticles; i++) {
+        if (particleInvMass[i] != 0.0) {
+            vel[i] = (xPrime[i]-pos[i])*dtInv;
+            pos[i] = xPrime[i];
+        }
+    }
+
+    // Apply hard wall constraints.
+
+    const double maxDrudeDistance = integrator.getMaxDrudeDistance();
+    if (maxDrudeDistance > 0) {
+        const double hardwallscaleDrude = sqrt(kTDrude);
+        for (int i = 0; i < (int) pairParticles.size(); i++) {
+            int p1 = pairParticles[i].first;
+            int p2 = pairParticles[i].second;
+            Vec3 delta = pos[p1]-pos[p2];
+            double r = sqrt(delta.dot(delta));
+            double rInv = 1/r;
+            if (rInv*maxDrudeDistance < 1.0) {
+                // The constraint has been violated, so make the inter-particle distance "bounce"
+                // off the hard wall.
+                
+                if (rInv*maxDrudeDistance < 0.5)
+                    throw OpenMMException("Drude particle moved too far beyond hard wall constraint");
+                Vec3 bondDir = delta*rInv;
+                Vec3 vel1 = vel[p1];
+                Vec3 vel2 = vel[p2];
+                double mass1 = particleMass[p1];
+                double mass2 = particleMass[p2];
+                double deltaR = r-maxDrudeDistance;
+                double deltaT = dt;
+                double dotvr1 = vel1.dot(bondDir);
+                Vec3 vb1 = bondDir*dotvr1;
+                Vec3 vp1 = vel1-vb1;
+                if (mass2 == 0) {
+                    // The parent particle is massless, so move only the Drude particle.
+
+                    if (dotvr1 != 0.0)
+                        deltaT = deltaR/abs(dotvr1);
+                    if (deltaT > dt)
+                        deltaT = dt;
+                    dotvr1 = -dotvr1*hardwallscaleDrude/(abs(dotvr1)*sqrt(mass1));
+                    double dr = -deltaR + deltaT*dotvr1;
+                    pos[p1] += bondDir*dr;
+                    vel[p1] = vp1 + bondDir*dotvr1;
+                }
+                else {
+                    // Move both particles.
+
+                    double invTotalMass = pairInvTotalMass[i];
+                    double dotvr2 = vel2.dot(bondDir);
+                    Vec3 vb2 = bondDir*dotvr2;
+                    Vec3 vp2 = vel2-vb2;
+                    double vbCMass = (mass1*dotvr1 + mass2*dotvr2)*invTotalMass;
+                    dotvr1 -= vbCMass;
+                    dotvr2 -= vbCMass;
+                    if (dotvr1 != dotvr2)
+                        deltaT = deltaR/abs(dotvr1-dotvr2);
+                    if (deltaT > dt)
+                        deltaT = dt;
+                    double vBond = hardwallscaleDrude/sqrt(mass1);
+                    dotvr1 = -dotvr1*vBond*mass2*invTotalMass/abs(dotvr1);
+                    dotvr2 = -dotvr2*vBond*mass1*invTotalMass/abs(dotvr2);
+                    double dr1 = -deltaR*mass2*invTotalMass + deltaT*dotvr1;
+                    double dr2 = deltaR*mass1*invTotalMass + deltaT*dotvr2;
+                    dotvr1 += vbCMass;
+                    dotvr2 += vbCMass;
+                    pos[p1] += bondDir*dr1;
+                    pos[p2] += bondDir*dr2;
+                    vel[p1] = vp1 + bondDir*dotvr1;
+                    vel[p2] = vp2 + bondDir*dotvr2;
+                }
+            }
+        }
+    }
+    ReferenceVirtualSites::computePositions(context.getSystem(), pos);
+    data.time += integrator.getStepSize();
+    data.stepCount++;
+}
+
+double ReferenceIntegrateDrudeNoseHooverChainStepKernel::computeKineticEnergy(ContextImpl& context, const DrudeNoseHooverChainIntegrator& integrator) {
     return computeShiftedKineticEnergy(context, particleInvMass, 0.5*integrator.getStepSize());
 }
 

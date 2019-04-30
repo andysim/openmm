@@ -29,6 +29,10 @@
  * USE OR OTHER DEALINGS IN THE SOFTWARE.                                     *
  * -------------------------------------------------------------------------- */
 
+#include "openmm/DrudeForce.h"
+#include "openmm/DrudeLangevinIntegrator.h"
+#include "openmm/DrudeNoseHooverChainIntegrator.h"
+#include "openmm/DrudeSCFIntegrator.h"
 #include "CudaDrudeKernels.h"
 #include "CudaDrudeKernelSources.h"
 #include "openmm/internal/ContextImpl.h"

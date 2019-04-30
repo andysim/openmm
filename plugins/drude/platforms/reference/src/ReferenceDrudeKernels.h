@@ -122,6 +122,47 @@ private:
 };
 
 /**
+ * This kernel is invoked by DrudeNoseHooverChainIntegrator to take one time step
+ */
+class ReferenceIntegrateDrudeNoseHooverChainStepKernel : public IntegrateDrudeNoseHooverChainStepKernel {
+public:
+    ReferenceIntegrateDrudeNoseHooverChainStepKernel(std::string name, const Platform& platform, ReferencePlatform::PlatformData& data) :
+        IntegrateDrudeNoseHooverChainStepKernel(name, platform), data(data) {
+    }
+    ~ReferenceIntegrateDrudeNoseHooverChainStepKernel();
+    /**
+     * Initialize the kernel.
+     *
+     * @param system     the System this kernel will be applied to
+     * @param integrator the DrudeNoseHooverChainIntegrator this kernel will be used for
+     * @param force      the DrudeForce to get particle parameters from
+     */
+    void initialize(const System& system, const DrudeNoseHooverChainIntegrator& integrator, const DrudeForce& force);
+    /**
+     * Execute the kernel.
+     *
+     * @param context        the context in which to execute this kernel
+     * @param integrator     the DrudeNoseHooverChainIntegrator this kernel is being used for
+     */
+    void execute(ContextImpl& context, const DrudeNoseHooverChainIntegrator& integrator);
+    /**
+     * Compute the kinetic energy.
+     * 
+     * @param context     the context in which to execute this kernel
+     * @param integrator  the DrudeNoseHooverChainIntegrator this kernel is being used for
+     */
+    double computeKineticEnergy(ContextImpl& context, const DrudeNoseHooverChainIntegrator& integrator);
+private:
+    ReferencePlatform::PlatformData& data;
+    std::vector<int> normalParticles;
+    std::vector<std::pair<int, int> > pairParticles;
+    std::vector<double> particleMass;
+    std::vector<double> particleInvMass;
+    std::vector<double> pairInvTotalMass;
+    std::vector<double> pairInvReducedMass;
+};
+
+/**
  * This kernel is invoked by DrudeSCFIntegrator to take one time step
  */
 class ReferenceIntegrateDrudeSCFStepKernel : public IntegrateDrudeSCFStepKernel {

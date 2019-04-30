@@ -29,6 +29,7 @@
  * USE OR OTHER DEALINGS IN THE SOFTWARE.                                     *
  * -------------------------------------------------------------------------- */
 
+#include "openmm/DrudeForce.h"
 #include "openmm/DrudeLangevinIntegrator.h"
 #include "openmm/Context.h"
 #include "openmm/OpenMMException.h"
