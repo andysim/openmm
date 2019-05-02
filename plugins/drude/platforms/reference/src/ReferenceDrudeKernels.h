@@ -122,6 +122,37 @@ private:
 };
 
 /**
+ * This kernel is invoked by NoseHooverChain to propagate the chain one half-time step
+ */
+class ReferenceNoseHooverChainThermostatPropagateKernel: public NoseHooverChainThermostatPropagateKernel {
+public:
+    ReferenceNoseHooverChainThermostatPropagateKernel(std::string name, const Platform& platform,  ReferencePlatform::PlatformData& data): 
+            NoseHooverChainThermostatPropagateKernel(name, platform), data(data){
+    }
+    /**
+     * Initialize the kernel.
+     * 
+     * @param chain  the NoseHooverChain that this kernel will be used for
+     */
+    virtual void initialize(const NoseHooverChainThermostat& chain);
+    /**
+     * Execute the kernel (propagate the Nose-Hoover chain one half-time step).
+     * 
+     * @param context        the context in which to execute this kernel
+     * @param chain     the DrudeNoseHooverChain this kernel is being used for
+     * @param kineticEnergy the instantaneous kinetic energy of the particles that this thermostat is acting on 
+     * @param timestep the integration timestep (of a full step)
+     */
+    virtual double execute(ContextImpl& context, NoseHooverChainThermostatImpl& chain, double kineticEnergy, double timestep);
+    /**
+     * Compute the kinetic energy.
+     */
+    virtual double computeKineticEnergy(ContextImpl& context, const NoseHooverChainThermostat& chain);
+private:
+    ReferencePlatform::PlatformData& data;
+};
+
+/**
  * This kernel is invoked by DrudeNoseHooverChainIntegrator to take one time step
  */
 class ReferenceIntegrateDrudeNoseHooverChainStepKernel : public IntegrateDrudeNoseHooverChainStepKernel {

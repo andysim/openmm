@@ -42,6 +42,7 @@ extern "C" OPENMM_EXPORT void registerKernelFactories() {
             ReferenceDrudeKernelFactory* factory = new ReferenceDrudeKernelFactory();
             platform.registerKernelFactory(CalcDrudeForceKernel::Name(), factory);
             platform.registerKernelFactory(IntegrateDrudeLangevinStepKernel::Name(), factory);
+            platform.registerKernelFactory(NoseHooverChainThermostatPropagateKernel::Name(), factory);
             platform.registerKernelFactory(IntegrateDrudeNoseHooverChainStepKernel::Name(), factory);
             platform.registerKernelFactory(IntegrateDrudeSCFStepKernel::Name(), factory);
         }
@@ -58,6 +59,8 @@ KernelImpl* ReferenceDrudeKernelFactory::createKernelImpl(std::string name, cons
         return new ReferenceCalcDrudeForceKernel(name, platform);
     if (name == IntegrateDrudeLangevinStepKernel::Name())
         return new ReferenceIntegrateDrudeLangevinStepKernel(name, platform, data);
+    if (name == ReferenceNoseHooverChainThermostatPropagateKernel::Name())
+        return new ReferenceNoseHooverChainThermostatPropagateKernel(name, platform, data);
     if (name == IntegrateDrudeNoseHooverChainStepKernel::Name())
         return new ReferenceIntegrateDrudeNoseHooverChainStepKernel(name, platform, data);
     if (name == IntegrateDrudeSCFStepKernel::Name())

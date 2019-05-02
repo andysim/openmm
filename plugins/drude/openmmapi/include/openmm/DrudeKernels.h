@@ -45,7 +45,8 @@ class DrudeForce;
 class DrudeLangevinIntegrator;
 class DrudeSCFIntegrator;
 class DrudeNoseHooverChainIntegrator;
-
+class NoseHooverChainThermostat;
+class NoseHooverChainThermostatImpl;
 /**
  * This kernel is invoked by DrudeForce to calculate the forces acting on the system and the energy of the system.
  */
@@ -110,6 +111,37 @@ public:
      * Compute the kinetic energy.
      */
     virtual double computeKineticEnergy(ContextImpl& context, const DrudeLangevinIntegrator& integrator) = 0;
+};
+
+/**
+ * This kernel is invoked by NoseHooverChain to propagate the chain one half-time step
+ */
+class NoseHooverChainThermostatPropagateKernel: public KernelImpl {
+public:
+    static std::string Name() {
+        return "NoseHooverChainThermostatPropagate";
+    }
+    NoseHooverChainThermostatPropagateKernel(std::string name, const Platform& platform): KernelImpl(name, platform){
+    }
+    /**
+     * Initialize the kernel.
+     * 
+     * @param chain  the NoseHooverChain that this kernel will be used for
+     */
+    virtual void initialize(const NoseHooverChainThermostat& chain) = 0;
+    /**
+     * Execute the kernel (propagate the Nose-Hoover chain one half-time step and return the velocity scaling factor).
+     * 
+     * @param context        the context in which to execute this kernel
+     * @param chain     the DrudeNoseHooverChain this kernel is being used for
+     * @param kineticEnergy the instantaneous kinetic energy of the particles that this thermostat is acting on 
+     * @param timestep the integration timestep (of a full step)
+     */
+    virtual double execute(ContextImpl& context, NoseHooverChainThermostatImpl& chain, double kineticEnergy, double timestep) = 0;
+    /**
+     * Compute the kinetic energy.
+     */
+    virtual double computeKineticEnergy(ContextImpl& context, const NoseHooverChainThermostat& chain) = 0;
 };
 
 /**

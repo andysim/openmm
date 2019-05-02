@@ -53,6 +53,7 @@ DrudeNoseHooverChainIntegrator::DrudeNoseHooverChainIntegrator(double temperatur
     setMaxDrudeDistance(0);
     setStepSize(stepSize);
     setConstraintTolerance(1e-5);
+   
 }
 
 double DrudeNoseHooverChainIntegrator::getMaxDrudeDistance() const {

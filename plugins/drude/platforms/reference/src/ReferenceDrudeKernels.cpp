@@ -38,8 +38,10 @@
 #include "openmm/OpenMMException.h"
 #include "openmm/internal/ContextImpl.h"
 #include "SimTKOpenMMUtilities.h"
+#include "SimTKOpenMMRealType.h"
 #include "ReferenceConstraints.h"
 #include "ReferenceVirtualSites.h"
+#include "openmm/internal/NoseHooverChainThermostatImpl.h"
 #include <set>
 
 using namespace OpenMM;
@@ -405,6 +407,51 @@ double ReferenceIntegrateDrudeLangevinStepKernel::computeKineticEnergy(ContextIm
     return computeShiftedKineticEnergy(context, particleInvMass, 0.5*integrator.getStepSize());
 }
 
+void ReferenceNoseHooverChainThermostatPropagateKernel::initialize(const NoseHooverChainThermostat& chain){
+}
+
+double ReferenceNoseHooverChainThermostatPropagateKernel::execute(ContextImpl& context, NoseHooverChainThermostatImpl& chain, double kineticEnergy, double timestep){
+    const auto & owner = chain.getOwner();
+    double kT = BOLTZ * owner.getTemperature();
+    const int numMTS = owner.getNumMTS();
+    const int numDOFs = owner.getNumDOFs();
+    const int numYS = owner.getNumYoshidaSuzuki();
+    const int chainLength = owner.getChainLength();
+    const auto YSWeights = owner.getYoshidaSuzukiWeights(numYS);
+    double scale = 1;
+    double KE2 = 2 * kineticEnergy;
+    chain.G_[0] = (KE2 - numDOFs * kT) / chain.Q_[0];
+    for (int mts = 0; mts < numMTS; ++mts) {
+        for (const auto &ys : YSWeights) {
+            double wdt = ys * timestep / numMTS;
+            chain.vxi_.back() += 0.25 * wdt + chain.G_.back();
+            for (int bead = chainLength - 2; bead >= 0; --bead) {
+                double aa = exp(-0.125 * wdt * chain.vxi_[bead + 1]);
+                chain.vxi_[bead] = aa * (chain.vxi_[bead] * aa + 0.25 * wdt * chain.G_[bead]);
+            }
+            // update particle velocities
+            double aa = exp(-0.5 * wdt * chain.vxi_[0]);
+            scale *= aa;
+            // update the thermostat positions
+            for (int bead = 0; bead < chainLength; ++bead) {
+                chain.xi_[bead] += 0.5 * chain.vxi_[bead] * wdt;
+            }
+            // update the forces
+            chain.G_[0] = (scale * scale * KE2 - numDOFs * kT) / chain.Q_[0];
+            // update thermostat velocities
+            for (int bead = 0; bead < chainLength - 1; ++bead) {
+                double aa = exp(-0.125 * wdt * chain.vxi_[bead + 1]);
+                chain.vxi_[bead] = aa * (aa * chain.vxi_[bead] + 0.25 * wdt * chain.G_[bead]);
+                chain.G_[bead + 1] = (chain.Q_[bead] * chain.vxi_[bead] * chain.vxi_[bead] - kT) / chain.Q_[bead + 1];
+            }
+            chain.vxi_.back() += 0.25 * wdt * chain.G_.back();
+        }  // YS loop
+    } // MTS loop
+    return scale;
+}
+
+double ReferenceNoseHooverChainThermostatPropagateKernel::computeKineticEnergy(ContextImpl& context, const NoseHooverChainThermostat& chain){
+}
 
 ReferenceIntegrateDrudeNoseHooverChainStepKernel::~ReferenceIntegrateDrudeNoseHooverChainStepKernel() {
 }

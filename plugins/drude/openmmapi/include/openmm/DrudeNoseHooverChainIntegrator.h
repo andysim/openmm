@@ -237,7 +237,7 @@ protected:
     double computeKineticEnergy();
 private:
     double temperature, friction, drudeTemperature, drudeFriction, maxDrudeDistance;
-    int chainLength, numYoshidaSuzuki, numMTS;
+    int chainLength, numYoshidaSuzuki, numMTS, numDOFs;
     Kernel kernel;
 };
 
