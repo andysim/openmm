@@ -44,7 +44,7 @@ using std::set;
 using std::string;
 using std::stringstream;
 
-NoseHooverChainThermostatImpl::NoseHooverChainThermostatImpl(const NoseHooverChainThermostat& owner, int numDOFs, std::string suffix) : owner(owner), suffix_(suffix) {
+NoseHooverChainThermostatImpl::NoseHooverChainThermostatImpl(const NoseHooverChainThermostat& owner, std::string suffix) : owner(owner), suffix_(suffix) {
     int chainLength = owner.getChainLength();
     G_.resize(chainLength);
     vxi_.resize(chainLength);

@@ -36,13 +36,17 @@
 #include "openmm/internal/AssertionUtilities.h"
 #include "openmm/Context.h"
 #include "openmm/NonbondedForce.h"
+#include "openmm/LangevinIntegrator.h"
 #include "openmm/Platform.h"
 #include "openmm/System.h"
 #include "openmm/VirtualSite.h"
 #include "openmm/DrudeForce.h"
 #include "openmm/CustomExternalForce.h"
-//#include "openmm/NoseHooverChain.h"
+#include "openmm/DrudeKernels.h"
 #include "openmm/DrudeNoseHooverChainIntegrator.h"
+#include "openmm/internal/NoseHooverChainThermostatImpl.h"
+#include "openmm/NoseHooverChainThermostat.h"
+#include "SimTKOpenMMRealType.h"
 #include "SimTKOpenMMUtilities.h"
 #include <iostream>
 #include <vector>
@@ -53,11 +57,17 @@ using namespace std;
 extern "C" OPENMM_EXPORT void registerDrudeReferenceKernelFactories();
 
 void testNoseHooverChainPropagation(){
-    /* test if the kinetic energy of one particle converges 
+    /* test if the kinetic energy of one degree of freedom converges 
      * to the reference value */
     double velocity;
     const double mass = 1;
-    
+    double timestep = 0.001;
+    DrudeNoseHooverChainIntegrator dummy_integrator(1,1,1,1,1);
+    Platform& platform = Platform::getPlatformByName("Reference");
+    Context context(system, dummy_integrator, platform);
+    NoseHooverChainThermostat thermostat(300, 1);
+    NoseHooverChainThermostatImpl thermostat_impl(thermostat);
+    ReferenceNoseHooverChainThermostatPropagateKernel(NoseHooverChainThermostatPropagateKernel::Name(), platform);
 }
 
 /*

@@ -126,8 +126,8 @@ private:
  */
 class ReferenceNoseHooverChainThermostatPropagateKernel: public NoseHooverChainThermostatPropagateKernel {
 public:
-    ReferenceNoseHooverChainThermostatPropagateKernel(std::string name, const Platform& platform,  ReferencePlatform::PlatformData& data): 
-            NoseHooverChainThermostatPropagateKernel(name, platform), data(data){
+    ReferenceNoseHooverChainThermostatPropagateKernel(std::string name, const Platform& platform): 
+            NoseHooverChainThermostatPropagateKernel(name, platform) { 
     }
     /**
      * Initialize the kernel.
@@ -148,8 +148,6 @@ public:
      * Compute the kinetic energy.
      */
     virtual double computeKineticEnergy(ContextImpl& context, const NoseHooverChainThermostat& chain);
-private:
-    ReferencePlatform::PlatformData& data;
 };
 
 /**

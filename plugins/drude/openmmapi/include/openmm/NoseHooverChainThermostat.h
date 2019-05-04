@@ -15,8 +15,7 @@ class NoseHooverChainThermostat : public Force {
    public:
    /**
     */
-    NoseHooverChainThermostat(int chainLength, int numYoshidaSuzuki, int numMTS, double frequency,
-                    double temperature, int numDOFs) {
+    NoseHooverChainThermostat(double temperature, int numDOFs, double frequency=50.0, int chainLength=10, int numMTS=2, int numYoshidaSuzuki=3) {
         setChainLength(chainLength);
         setNumDOFs(numDOFs);
         setNumYoshidaSuzuki(numYoshidaSuzuki);

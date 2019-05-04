@@ -46,10 +46,53 @@ namespace OpenMM {
  * This is the internal implementation of NoseHooverChainThermostat.
  */
 
+/**
+ * NOTE TO SELF:
+ *
+ * The Impl class is only know to the ContextImpl which triggers
+ * updateContextState and calcForcesAndEnergy calls on all forces
+ * (calcForcesAndEnergy can also be called on groups of forces). 
+ * These calls in turn are triggered by the integrator.
+ * 
+ * updateContextState is meant to give forces a hook to change state variables
+ * and is usually called at the start of each integration step.
+ * In the AndersenThermostat, updateContextState triggers the velocity scaling
+ * (we cannot do the same thing for NoseHoover, because the propagation has
+ * to be called before and after the integration step).
+ *
+ * Instead, calcForcesAndEnergies will trigger the velocity scaling for NH.
+ * 
+ * The NoseHooverChainThermostatImpl should be responsible for making the 
+ * kernel that propagates kinetic energy through the Nose-Hoover beads.
+ *
+ * As opposed to our original design decision, the kernel will communicate
+ * with the integrator kernel only through the context, rather than
+ * passing parameters and return values.
+ *
+ * All instantaneous data associated with the NH beads should only be 
+ * stored in the Context (if for some reason we should revert this decision
+ * updateParametersInContext could be called after the NH propagation.)
+ *
+ * Open questions:
+ * - How does NoseHooverChainThermostatImpl::calcForcesAndEnergies know about
+ *   the time step? --> has to be a member (again)
+ * 
+ * The relation between the integrator and the NoseHooverChainThermostat is 
+ * as follows:
+ * - The constructor of NHCIntegrator will take a system class and inject
+ *   the NoseHooverChainThermostat classes as forces with a specific force 
+ *   group, and suffixes.
+ * - If Drudes are present, one thermostat instance will be created for
+ *   each set of particles (Drude and non-Drude), but they can go into
+ *   the same force group.
+ * -
+ *
+ */
+
 class NoseHooverChainThermostatImpl : public ForceImpl {
 public:
     
-    NoseHooverChainThermostatImpl(const NoseHooverChainThermostat& owner, int numDOFs, std::string suffix="");
+    NoseHooverChainThermostatImpl(const NoseHooverChainThermostat& owner, std::string suffix="");
     ~NoseHooverChainThermostatImpl();
     void initialize(ContextImpl& context);
     const NoseHooverChainThermostat& getOwner() const {

@@ -60,7 +60,7 @@ KernelImpl* ReferenceDrudeKernelFactory::createKernelImpl(std::string name, cons
     if (name == IntegrateDrudeLangevinStepKernel::Name())
         return new ReferenceIntegrateDrudeLangevinStepKernel(name, platform, data);
     if (name == ReferenceNoseHooverChainThermostatPropagateKernel::Name())
-        return new ReferenceNoseHooverChainThermostatPropagateKernel(name, platform, data);
+        return new ReferenceNoseHooverChainThermostatPropagateKernel(name, platform);
     if (name == IntegrateDrudeNoseHooverChainStepKernel::Name())
         return new ReferenceIntegrateDrudeNoseHooverChainStepKernel(name, platform, data);
     if (name == IntegrateDrudeSCFStepKernel::Name())
