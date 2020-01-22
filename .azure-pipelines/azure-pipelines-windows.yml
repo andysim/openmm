@@ -50,16 +50,14 @@ jobs:
         displayName: "Install conda packages"
       # Download OpenCL Headers and build the ICD loader
       - script: |
-        $(opencl.registry) = "https://www.khronos.org/registry/cl"
-        $(opencl.github) = "KhronosGroup/OpenCL-Headers"
         mkdir C:/opencl > $null
         cd C:/opencl
-        wget $opencl_registry/specs/opencl-icd-1.2.11.0.tgz -OutFile opencl-icd-1.2.11.0.tgz
+        wget https://www.khronos.org/registry/cl/specs/opencl-icd-1.2.11.0.tgz -OutFile opencl-icd-1.2.11.0.tgz
         7z x opencl-icd-1.2.11.0.tgz > $null
         7z x opencl-icd-1.2.11.0.tar > $null
         mv .\icd\* .
         mkdir inc/CL > $null
-        wget https://github.com/$opencl_github/tree/master/CL -UseBasicParsing | select -ExpandProperty links | where {$_.href -like "*.h*"} | select -ExpandProperty title | foreach{ wget https://raw.githubusercontent.com/$opencl_github/master/CL/$_ -OutFile inc/CL/$_ -UseBasicParsing}
+        wget https://github.com/KhronosGroup/OpenCL-Headers/tree/master/CL -UseBasicParsing | select -ExpandProperty links | where {$_.href -like "*.h*"} | select -ExpandProperty title | foreach{ wget https://raw.githubusercontent.com/KhronosGroup/OpenCL-Headers/master/CL/$_ -OutFile inc/CL/$_ -UseBasicParsing}
         mkdir lib > $null
         cd lib
         cmake -G Ninja ..
