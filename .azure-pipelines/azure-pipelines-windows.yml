@@ -42,11 +42,10 @@ jobs:
           7z x opencl-icd-1.2.11.0.tgz > $null
           7z x opencl-icd-1.2.11.0.tar > $null
           move .\icd\* .
-          mkdir inc > $null
-          cd inc
-          # this will generate a CL directory with headers in it
-          git clone git@github.com:KhronosGroup/OpenCL-Headers
-          cd ..
+          mkdir inc/CL > $null
+          wget https://github.com/KhronosGroup/OpenCL-Headers/master.zip
+          7z -x master.zip
+          move OpenCL-Headers-master/*.h inc/CL/
           mkdir lib > $null
           cd lib
           cmake -G Ninja ..
