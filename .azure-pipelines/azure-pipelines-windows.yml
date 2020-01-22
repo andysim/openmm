@@ -44,7 +44,7 @@ jobs:
                         numpy ^
                         pytest ^
                         pytest-xdist ^
-                        python=%PYTHON_VERSION% ^
+                        python=%PYTHON_VERSION%
           conda list
         displayName: "Install conda packages"
       # Install LLVM from chocolatey (the Conda version is old)
