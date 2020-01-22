@@ -50,7 +50,6 @@ jobs:
         displayName: "Install conda packages"
       # Download OpenCL Headers and build the ICD loader
       - script: |
-        "[System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12;"
         $(opencl.registry) = "https://www.khronos.org/registry/cl"
         $(opencl.github) = "KhronosGroup/OpenCL-Headers"
         mkdir C:/opencl > $null
