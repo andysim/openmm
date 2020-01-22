@@ -35,8 +35,8 @@ jobs:
         displayName: "Install Miniconda"
       # Download OpenCL Headers and build the ICD loader
       - script: |
-          mkdir C:/opencl
-          cd C:/opencl
+          mkdir opencl
+          cd opencl
           dir 
           wget https://www.khronos.org/registry/cl/specs/opencl-icd-1.2.11.0.tgz -O opencl-icd-1.2.11.0.tgz
           7z x opencl-icd-1.2.11.0.tgz > $null
@@ -54,6 +54,7 @@ jobs:
           cmake --build . ^
                 -- -j %NUMBER_OF_PROCESSORS%
         displayName: "Download and install OpenCL"
+        workingDirectory: $(Pipeline.Workspace)
       # Configure Miniconda
       - script: |
           conda config --set always_yes yes
@@ -77,6 +78,7 @@ jobs:
           call "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat" x86_amd64
           mkdir build & cd build
           cmake -G Ninja ^
+                -DCMAKE_PREFIX_PATH=(Pipeline.Workspace)/opencl
                 -DCMAKE_BUILD_TYPE=$(cmake.build.type) ^
                 -DCMAKE_INSTALL_PREFIX=../install ^
                 $(Build.SourcesDirectory)
