@@ -74,3 +74,4 @@ jobs:
                 $(Build.SourcesDirectory)
         displayName: "Configure OpenMM with CMake"
         workingDirectory: $(Build.BinariesDirectory)
+
