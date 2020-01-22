@@ -33,6 +33,23 @@ jobs:
           echo '##vso[task.setvariable variable=LIB]%LIB%'
           conda --version
         displayName: "Install Miniconda"
+      # Download OpenCL Headers and build the ICD loader
+      - script: |
+          wget --help
+          mkdir C:/opencl > $null
+          cd C:/opencl
+          wget https://www.khronos.org/registry/cl/specs/opencl-icd-1.2.11.0.tgz -O opencl-icd-1.2.11.0.tgz
+          7z x opencl-icd-1.2.11.0.tgz > $null
+          7z x opencl-icd-1.2.11.0.tar > $null
+          mv .\icd\* .
+          mkdir inc/CL > $null
+          wget https://github.com/KhronosGroup/OpenCL-Headers/tree/master/CL -UseBasicParsing | select -ExpandProperty links | where {$_.href -like "*.h*"} | select -ExpandProperty title | foreach{ wget https://raw.githubusercontent.com/KhronosGroup/OpenCL-Headers/master/CL/$_ -O inc/CL/$_ -UseBasicParsing}
+          mkdir lib > $null
+          cd lib
+          cmake -G Ninja ..
+          cmake --build . ^
+                -- -j %NUMBER_OF_PROCESSORS%
+        displayName: "Download and install OpenCL"
       # Configure Miniconda
       - script: |
           conda config --set always_yes yes
@@ -50,22 +67,6 @@ jobs:
                         python=$(python.version)
           conda list
         displayName: "Install conda packages"
-      # Download OpenCL Headers and build the ICD loader
-      - script: |
-          mkdir C:/opencl > $null
-          cd C:/opencl
-          wget https://www.khronos.org/registry/cl/specs/opencl-icd-1.2.11.0.tgz -OutFile opencl-icd-1.2.11.0.tgz
-          7z x opencl-icd-1.2.11.0.tgz > $null
-          7z x opencl-icd-1.2.11.0.tar > $null
-          mv .\icd\* .
-          mkdir inc/CL > $null
-          wget https://github.com/KhronosGroup/OpenCL-Headers/tree/master/CL -UseBasicParsing | select -ExpandProperty links | where {$_.href -like "*.h*"} | select -ExpandProperty title | foreach{ wget https://raw.githubusercontent.com/KhronosGroup/OpenCL-Headers/master/CL/$_ -OutFile inc/CL/$_ -UseBasicParsing}
-          mkdir lib > $null
-          cd lib
-          cmake -G Ninja ..
-          cmake --build . ^
-                -- -j %NUMBER_OF_PROCESSORS%
-        displayName: "Download and install OpenCL"
       # Configure
       - script: |
           setlocal EnableDelayedExpansion
