@@ -41,7 +41,7 @@ jobs:
           wget https://www.khronos.org/registry/cl/specs/opencl-icd-1.2.11.0.tgz -O opencl-icd-1.2.11.0.tgz
           7z x opencl-icd-1.2.11.0.tgz > $null
           7z x opencl-icd-1.2.11.0.tar > $null
-          mv .\icd\* .
+          move .\icd\* .
           mkdir inc/CL > $null
           wget https://github.com/KhronosGroup/OpenCL-Headers/tree/master/CL -UseBasicParsing | select -ExpandProperty links | where {$_.href -like "*.h*"} | select -ExpandProperty title | foreach{ wget https://raw.githubusercontent.com/KhronosGroup/OpenCL-Headers/master/CL/$_ -O inc/CL/$_ -UseBasicParsing}
           mkdir lib > $null
