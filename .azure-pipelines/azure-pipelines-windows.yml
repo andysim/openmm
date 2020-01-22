@@ -80,7 +80,8 @@ jobs:
           call "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat" x86_amd64
           mkdir build & cd build
           cmake -G Ninja ^
-                -DCMAKE_PREFIX_PATH=(Pipeline.Workspace)/opencl ^
+                -DOPENCL_INCLUDE_DIR=$(Pipeline.Workspace)/opencl/inc ^
+                -DOPENCL_LIBRARY=$(Pipeline.Workspace)/opencl/lib/OpenCL.lib ^
                 -DCMAKE_BUILD_TYPE=$(cmake.build.type) ^
                 -DCMAKE_INSTALL_PREFIX=../install ^
                 $(Build.SourcesDirectory)
@@ -92,6 +93,8 @@ jobs:
           cmake --build . ^
                 --config $(cmake.build.type) ^
                 -- -j %NUMBER_OF_PROCESSORS%
+          cmake --build . --target install
+          cmake --build . --target PythonInstall
         displayName: "Build OpenMM"
         workingDirectory: $(Build.BinariesDirectory)/build
       # Test
