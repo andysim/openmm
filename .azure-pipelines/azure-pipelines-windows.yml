@@ -86,3 +86,10 @@ jobs:
                 -- -j %NUMBER_OF_PROCESSORS%
         displayName: "Build OpenMM"
         workingDirectory: $(Build.BinariesDirectory)/build
+      # Test
+      - script: |
+          python $(Build.SourcesDirectory)\devtools\run-ctest.py
+          cd python\tests
+          py.test -v
+        workingDirectory: $(Build.BinariesDirectory)/build
+        displayName: "Run OpenMM tests"
