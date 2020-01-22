@@ -60,7 +60,7 @@ jobs:
           wget https://www.khronos.org/registry/cl/specs/opencl-icd-1.2.11.0.tgz -O opencl-icd-1.2.11.0.tgz
           7z x opencl-icd-1.2.11.0.tgz > $null
           7z x opencl-icd-1.2.11.0.tar > $null
-          move .\icd\* .
+          move .\icd .
           mkdir inc\CL > $null
           wget https://github.com/KhronosGroup/OpenCL-Headers/archive/master.zip
           7z x master.zip
