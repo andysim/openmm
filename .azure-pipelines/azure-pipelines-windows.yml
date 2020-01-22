@@ -80,7 +80,7 @@ jobs:
           call "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat" x86_amd64
           mkdir build & cd build
           cmake -G Ninja ^
-                -DCMAKE_PREFIX_PATH=(Pipeline.Workspace)/opencl
+                -DCMAKE_PREFIX_PATH=(Pipeline.Workspace)/opencl ^
                 -DCMAKE_BUILD_TYPE=$(cmake.build.type) ^
                 -DCMAKE_INSTALL_PREFIX=../install ^
                 $(Build.SourcesDirectory)
