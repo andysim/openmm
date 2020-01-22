@@ -33,28 +33,6 @@ jobs:
           echo '##vso[task.setvariable variable=LIB]%LIB%'
           conda --version
         displayName: "Install Miniconda"
-      # Download OpenCL Headers and build the ICD loader
-      - script: |
-          mkdir opencl
-          cd opencl
-          dir 
-          wget https://www.khronos.org/registry/cl/specs/opencl-icd-1.2.11.0.tgz -O opencl-icd-1.2.11.0.tgz
-          7z x opencl-icd-1.2.11.0.tgz > $null
-          7z x opencl-icd-1.2.11.0.tar > $null
-          move .\icd\* .
-          mkdir inc\CL > $null
-          wget https://github.com/KhronosGroup/OpenCL-Headers/archive/master.zip
-          7z x master.zip
-          dir .
-          move .\OpenCL-Headers-master\CL\*.h .\inc\CL\
-          dir .\inc
-          mkdir lib > $null
-          cd lib
-          cmake -G Ninja ..
-          cmake --build . ^
-                -- -j %NUMBER_OF_PROCESSORS%
-        displayName: "Download and install OpenCL"
-        workingDirectory: $(Pipeline.Workspace)
       # Configure Miniconda
       - script: |
           conda config --set always_yes yes
@@ -72,6 +50,28 @@ jobs:
                         python=$(python.version)
           conda list
         displayName: "Install conda packages"
+      # Download OpenCL Headers and build the ICD loader
+      - script: |
+          mkdir opencl
+          cd opencl
+          dir 
+          wget https://www.khronos.org/registry/cl/specs/opencl-icd-1.2.11.0.tgz -O opencl-icd-1.2.11.0.tgz
+          7z x opencl-icd-1.2.11.0.tgz > $null
+          7z x opencl-icd-1.2.11.0.tar > $null
+          move .\icd\* .
+          mkdir inc\CL > $null
+          wget https://github.com/KhronosGroup/OpenCL-Headers/archive/master.zip
+          7z x master.zip
+          dir .
+          move .\OpenCL-Headers-master\CL\*.h .\inc\CL\
+          dir .\inc\CL
+          mkdir lib > $null
+          cd lib
+          cmake -G Ninja ..
+          cmake --build . ^
+                -- -j %NUMBER_OF_PROCESSORS%
+        displayName: "Download and install OpenCL"
+        workingDirectory: $(Pipeline.Workspace)
       # Configure
       - script: |
           setlocal EnableDelayedExpansion
