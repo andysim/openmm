@@ -1,0 +1,137 @@
+jobs:
+
+  # Configure, build, install, and test job
+  - job: 'windows_build'
+    displayName: 'Windows VS2015'
+    pool:
+      vmImage: 'vs2015-win2012r2'
+    timeoutInMinutes: 360
+    variables:
+      llvm.version: '7.0.1'
+      mkl.version: '2019.1'
+    steps:
+
+      # Check Python
+      - script: |
+          setlocal EnableDelayedExpansion
+          echo python.version: %PYTHON_VERSION%
+          set VALID=false
+          if "%PYTHON_VERSION%"=="3.6" set VALID=true
+          if "%PYTHON_VERSION%"=="3.7" set VALID=true
+          if "!VALID!"=="false" (
+            echo ERROR: Invalid "python.version" value: "%PYTHON_VERSION%". Valid values: "3.6" and "3.7".
+            exit 1
+          )
+        displayName: "Check Python version: $(python.version)"
+      # Check cmake configuration
+      - script: |
+          setlocal EnableDelayedExpansion
+          echo cmake.build_type: %CMAKE_BUILD_TYPE%
+          set VALID=false
+          if "%CMAKE_BUILD_TYPE%"=="Debug" set VALID=true
+          if "%CMAKE_BUILD_TYPE%"=="Release" set VALID=true
+          if "!VALID!"=="false" (
+            echo ERROR: Invalid "cmake.build_type" value: "%CMAKE_BUILD_TYPE%". Valid values: "Debug" and "Release".
+            exit 1
+          )
+        displayName: "Check cmake configuration"
+      # Check ctest configuration
+      - script: |
+          setlocal EnableDelayedExpansion
+          echo ctest.type: %CTEST_TYPE%
+          set VALID=false
+          if "%CTEST_TYPE%"=="quick" set VALID=true
+          if "%CTEST_TYPE%"=="full" set VALID=true
+          if "!VALID!"=="false" (
+            echo ERROR: Invalid "ctest.type" value: "%CTEST_TYPE%". Valid values: "quick" and "full".
+            exit 1
+          )
+        displayName: "Check ctest configuration"
+      # Check pytest configuration
+      - script: |
+          setlocal EnableDelayedExpansion
+          echo pytest.type: %PYTEST_TYPE%
+          set VALID=false
+          if "%PYTEST_TYPE%"=="quick" set VALID=true
+          if "%PYTEST_TYPE%"=="full" set VALID=true
+          if "!VALID!"=="false" (
+            echo ERROR: Invalid "pytest.type" value: "%PYTEST_TYPE%". Valid values: "quick" and "full".
+            exit 1
+          )
+        displayName: "Check pytest configuration"
+      # Check conda configuration
+      - script: |
+          setlocal EnableDelayedExpansion
+          echo conda.build: %CONDA_BUILD%
+          set VALID=false
+          if "%CONDA_BUILD%"=="true" set VALID=true
+          if "%CONDA_BUILD%"=="false" set VALID=true
+          if "!VALID!"=="false" (
+            echo ERROR: Invalid "conda.build" value: "%CONDA_BUILD%". Valid values: "true" and "false".
+            exit 1
+          )
+        displayName: "Check conda configuration"
+      # Install Chocolatey (https://chocolatey.org/install#install-with-powershellexe)
+      - powershell: |
+          Set-ExecutionPolicy Bypass -Scope Process -Force
+          iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
+          Write-Host "##vso[task.setvariable variable=PATH]$env:PATH"
+          choco --version
+        displayName: "Install Chocolatey"
+      # Install Miniconda
+      - script: |
+          choco install miniconda3 --yes
+          set PATH=C:\tools\miniconda3\Scripts;C:\tools\miniconda3;C:\tools\miniconda3\Library\bin;%PATH%
+          echo '##vso[task.setvariable variable=PATH]%PATH%'
+          set LIB=C:\tools\miniconda3\Library\lib;%LIB%
+          echo '##vso[task.setvariable variable=LIB]%LIB%'
+          conda --version
+        displayName: "Install Miniconda"
+      # Configure Miniconda
+      - script: |
+          conda config --set always_yes yes
+          conda config --append channels conda-forge
+          conda config --append channels psi4
+          conda info
+        displayName: "Configure Miniconda"
+
+      # Create conda enviroment
+      # Note: conda activate doesn't work here, because it creates a new shell!
+      - script: |
+          conda install cmake ^
+                        intel-openmp=%MKL_VERSION% ^
+                        mkl-devel=%MKL_VERSION% ^
+                        ninja ^
+                        numpy ^
+                        pytest ^
+                        pytest-xdist ^
+                        python=%PYTHON_VERSION% ^
+          conda list
+        displayName: "Install conda packages"
+      # Install LLVM from chocolatey (the Conda version is old)
+      - script: |
+          choco install llvm --version %LLVM_VERSION% --yes
+          set PATH=C:\Program Files\LLVM\bin;%PATH%
+          echo '##vso[task.setvariable variable=PATH]%PATH%'
+          clang-cl --version
+        displayName: "Install LLVM"
+      # Install Intel OpenMP import library
+      # NOTE: libiomp5md.lib is located in conda/win/$(mkl.version)
+      - script: |
+          set LIB=$(Build.SourcesDirectory)\conda\win\$(mkl.version);%LIB%
+          echo '##vso[task.setvariable variable=LIB]%LIB%'
+        displayName: "Install Intel OpenMP import library"
+
+      # Configure
+      - script: |
+          setlocal EnableDelayedExpansion
+          call "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat" x86_amd64
+          mkdir build & cd build
+          cmake -G Ninja ^
+                -DCMAKE_BUILD_TYPE=%CMAKE_BUILD_TYPE% ^
+                -DCMAKE_INSTALL_PREFIX=../install ^
+                -DCMAKE_C_COMPILER=clang-cl ^
+                -DCMAKE_CXX_COMPILER=clang-cl ^
+                $(Build.SourcesDirectory)
+        displayName: "Configure OpenMM with CMake"
+        workingDirectory: $(Build.BinariesDirectory)
