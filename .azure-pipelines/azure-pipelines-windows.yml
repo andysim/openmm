@@ -84,6 +84,8 @@ jobs:
                 -DOPENCL_LIBRARY=$(Pipeline.Workspace)/opencl/lib/OpenCL.lib ^
                 -DCMAKE_BUILD_TYPE=$(cmake.build.type) ^
                 -DCMAKE_INSTALL_PREFIX=../install ^
+                -DOPENMM_BUILD_EXAMPLES=OFF ^
+                -DOPENMM_BUILD_OPENCL_TESTS=OFF ^
                 $(Build.SourcesDirectory)
         displayName: "Configure OpenMM with CMake"
         workingDirectory: $(Build.BinariesDirectory)
