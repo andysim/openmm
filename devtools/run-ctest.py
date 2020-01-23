@@ -41,7 +41,7 @@ def main():
     parser.add_argument(
         '--parallel',
         help="Number of cores to run tests on simultaneously. Default=1",
-        type=str
+        type=str,
         default='1')
     parser.add_argument(
         '--timeout',
