@@ -56,7 +56,6 @@ jobs:
           call "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat" x86_amd64
           mkdir opencl
           cd opencl
-          dir 
           wget https://www.khronos.org/registry/cl/specs/opencl-icd-1.2.11.0.tgz -O opencl-icd-1.2.11.0.tgz
           7z x opencl-icd-1.2.11.0.tgz > $null
           7z x opencl-icd-1.2.11.0.tar > $null
@@ -64,9 +63,7 @@ jobs:
           mkdir inc\CL > $null
           wget https://github.com/KhronosGroup/OpenCL-Headers/archive/master.zip
           7z x master.zip
-          dir .
           move .\OpenCL-Headers-master\CL\*.h .\inc\CL\
-          dir .\inc\CL
           mkdir lib > $null
           cd lib
           cmake -G Ninja ..
@@ -101,8 +98,13 @@ jobs:
         workingDirectory: $(Build.BinariesDirectory)/build
       # Test
       - script: |
-          python $(Build.SourcesDirectory)\devtools\run-ctest.py
+          python $(Build.SourcesDirectory)\devtools\run-ctest.py --job-duration 50 --parallel %NUMBER_OF_PROCESSORS%
           cd python\tests
+          python --version
+          echo "lib"
+          dir C:\tools\miniconda3\Lib
+          echo "sitepackages"
+          dir C:\tools\miniconda3\Lib\site_packages
           py.test -v
         workingDirectory: $(Build.BinariesDirectory)/build
         displayName: "Run OpenMM tests"

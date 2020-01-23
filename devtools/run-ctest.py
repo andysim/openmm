@@ -39,6 +39,11 @@ def main():
         type=float,
         default=90.)
     parser.add_argument(
+        '--parallel',
+        help="Number of cores to run tests on simultaneously. Default=1",
+        type=int,
+        default=1)
+    parser.add_argument(
         '--timeout',
         help="Timeout for individual tests (seconds). Default=180",
         type=str,
@@ -70,6 +75,7 @@ def execute_tests(options):
                  '--output-on-failure',
                  '--schedule-random',
                  '-T', 'Test',
+                 '--parallel', options.parallel,
                  '--timeout', options.timeout,
                  '--stop-time', stop_time.strftime('%H:%M:%S')])
 
@@ -97,6 +103,7 @@ def execute_failed_tests(options):
                  '--output-on-failure',
                  '--schedule-random',
                  '-R', '|'.join(failed_tests),
+                 '--parallel', options.parallel,
                  '--timeout', options.timeout,
                  '--stop-time', stop_time.strftime('%H:%M:%S')])
 
