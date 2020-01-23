@@ -94,6 +94,10 @@ jobs:
                 -- -j %NUMBER_OF_PROCESSORS%
           cmake --build . --target install
           cmake --build . --target PythonInstall
+          echo "sitepackages"
+          dir C:\tools\miniconda3\Lib\site-packages
+          echo "sitepackages take II"
+          dir /tools\miniconda3\Lib\site-packages
         displayName: "Build OpenMM"
         workingDirectory: $(Build.BinariesDirectory)/build
       # Test
@@ -105,6 +109,8 @@ jobs:
           dir C:\tools\miniconda3\Lib
           echo "sitepackages"
           dir C:\tools\miniconda3\Lib\site-packages
+          echo "sitepackages take II"
+          dir /tools\miniconda3\Lib\site-packages
           py.test -v
         workingDirectory: $(Build.BinariesDirectory)/build
         displayName: "Run OpenMM tests"
