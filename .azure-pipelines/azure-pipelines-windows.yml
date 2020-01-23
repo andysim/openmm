@@ -104,7 +104,7 @@ jobs:
           echo "lib"
           dir C:\tools\miniconda3\Lib
           echo "sitepackages"
-          dir C:\tools\miniconda3\Lib\site_packages
+          dir C:\tools\miniconda3\Lib\site-packages
           py.test -v
         workingDirectory: $(Build.BinariesDirectory)/build
         displayName: "Run OpenMM tests"
